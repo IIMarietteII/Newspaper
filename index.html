@@ -420,17 +420,23 @@
       $('diff').value = '데이터 기반 편성 최적화\n크로스플랫폼 동시 배포\n오퍼레이션 자동화로 리드타임 단축\n파트너 공동제작 모델 확장\n지역화(자막/더빙) 파이프라인 고도화';
     }
 
-    // Wire events
-    $('generateBtn').addEventListener('click', generate);
-    $('backBtn').addEventListener('click', () => {
-      $('newsView').style.display = 'none';
-      $('editorView').style.display = 'block';
-      window.scrollTo(0, 0);
-    });
-    $('copyMarkdown').addEventListener('click', toMarkdown);
-    $('loadSample').addEventListener('click', fillSample);
+    // Wire events (robust)
+    function wireEvents(){
+      const on=(id,ev,fn)=>{const el=$(id); if(el){el.addEventListener(ev,fn);} else {console.warn('missing element:', id);} };
+      on('generateBtn','click',generate);
+      on('backBtn','click',() => {
+        $('newsView').style.display = 'none';
+        $('editorView').style.display = 'block';
+        window.scrollTo(0, 0);
+      });
+      on('copyMarkdown','click',toMarkdown);
+      on('loadSample','click',fillSample);
+    }
 
-    restore();
+    document.addEventListener('DOMContentLoaded', () => {
+      restore();
+      wireEvents();
+    });
   </script>
 </body>
 </html>
