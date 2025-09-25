@@ -96,15 +96,9 @@
       body { background: white; }
       .container { max-width: none; }
     }
-      /* NEW: textured newspaper background (can be replaced) */
-    .use-texture-bg { background:
-        linear-gradient(rgba(255,255,255,0.70), rgba(255,255,255,0.70)),
-        url('assets/bg.jpg') center/cover fixed no-repeat; }
-    /* keep print clean */
-    @media print { body { background: #ffffff !important; } }
   </style>
 </head>
-<body class="use-texture-bg">
+<body>
   <div class="container">
     <!-- Editor / First Screen -->
     <section id="editorView">
@@ -179,9 +173,9 @@
 - 장기 성장으로 연결된 이유?" style="min-height:140px"></textarea>
       </div>
 
-                  <div class="actions">
-        <button class="btn secondary" id="loadSample" type="button">샘플 채우기</button>
-        <button class="btn" id="generateBtn" type="button">Generate ▶</button>
+      <div class="actions">
+        <button class="btn secondary" id="loadSample">샘플 채우기</button>
+        <button class="btn" id="generateBtn">Generate ▶</button>
       </div>
     </section>
 
@@ -284,63 +278,8 @@
 
       const diff = $('diff').value;
 
+      // Simple validation
       if (!headline) { alert('헤드라인을 입력하세요.'); return; }
-
-      // Background is hardcoded via CSS; no dynamic options here
-
-      $('outHeadline').textContent = headline;
-      const subParts = [sub1, sub2].filter(Boolean);
-      $('outSub').textContent = subParts.length ? subParts.join(' · ') : '';
-
-      $('outArt1').innerHTML = nl2p(art1);
-      $('outArt2').innerHTML = nl2p(art2);
-      $('outArt3').innerHTML = nl2p(art3);
-
-      const metrics = [m1, m2, m3].filter(Boolean).map(x => `<li>${x}</li>`).join('');
-      $('outMetrics').innerHTML = metrics || '<li>—</li>';
-
-      $('outDiff').innerHTML = linesToList(diff) || '<li>—</li>';
-
-      const now = new Date();
-      $('dateline').textContent = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} · Special Report`;
-
-      const state = { headline, sub1, sub2, art1, art2, art3, m1, m2, m3, diff };
-      localStorage.setItem('newsgen.state', JSON.stringify(state));
-
-      $('editorView').style.display = 'none';
-      $('newsView').style.display = 'block';
-      window.scrollTo(0, 0);
-    }
-
-      // Apply background dynamically
-      document.body.style.background = `linear-gradient(rgba(255,255,255,${alpha}), rgba(255,255,255,${alpha})), url('${bgUrl}') center/cover fixed no-repeat`;
-
-      // Fill out view
-      $('outHeadline').textContent = headline;
-      const subParts = [sub1, sub2].filter(Boolean);
-      $('outSub').textContent = subParts.length ? subParts.join(' · ') : '';
-
-      $('outArt1').innerHTML = nl2p(art1);
-      $('outArt2').innerHTML = nl2p(art2);
-      $('outArt3').innerHTML = nl2p(art3);
-
-      const metrics = [m1, m2, m3].filter(Boolean).map(x => `<li>${x}</li>`).join('');
-      $('outMetrics').innerHTML = metrics || '<li>—</li>';
-
-      $('outDiff').innerHTML = linesToList(diff) || '<li>—</li>';
-
-      const now = new Date();
-      $('dateline').textContent = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} · Special Report`;
-
-      // Persist minimal state
-      const state = { headline, sub1, sub2, art1, art2, art3, m1, m2, m3, diff, bgUrl, bgAlpha: alpha };
-      localStorage.setItem('newsgen.state', JSON.stringify(state));
-
-      // Swap views
-      $('editorView').style.display = 'none';
-      $('newsView').style.display = 'block';
-      window.scrollTo(0, 0);
-    }
 
       // Fill out view
       $('outHeadline').textContent = headline;
@@ -375,14 +314,6 @@
         if (!raw) return;
         const s = JSON.parse(raw);
         Object.entries(s).forEach(([k,v]) => { if ($(k)) $(k).value = v; });
-      } catch (e) {}
-    });
-        if (s.bgUrl || s.bgAlpha) {
-          const alpha = s.bgAlpha ?? 0.90;
-          document.body.style.background = `linear-gradient(rgba(255,255,255,${alpha}), rgba(255,255,255,${alpha})), url('${s.bgUrl || 'assets/bg.jpg'}') center/cover fixed no-repeat`;
-        }
-      } catch (e) {}
-    });
       } catch (e) {}
     }
 
@@ -420,26 +351,17 @@
       $('diff').value = '데이터 기반 편성 최적화\n크로스플랫폼 동시 배포\n오퍼레이션 자동화로 리드타임 단축\n파트너 공동제작 모델 확장\n지역화(자막/더빙) 파이프라인 고도화';
     }
 
-    // Wire events (robust)
-    function wireEvents(){
-      const on=(id,ev,fn)=>{const el=$(id); if(el){el.addEventListener(ev,fn);} else {console.warn('missing element:', id);} };
-      on('generateBtn','click',generate);
-      on('backBtn','click',() => {
-        $('newsView').style.display = 'none';
-        $('editorView').style.display = 'block';
-        window.scrollTo(0, 0);
-      });
-      on('copyMarkdown','click',toMarkdown);
-      on('loadSample','click',fillSample);
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      restore();
-      wireEvents();
-    });('DOMContentLoaded', () => {
-      restore();
-      wireEvents();
+    // Wire events
+    $('generateBtn').addEventListener('click', generate);
+    $('backBtn').addEventListener('click', () => {
+      $('newsView').style.display = 'none';
+      $('editorView').style.display = 'block';
+      window.scrollTo(0, 0);
     });
+    $('copyMarkdown').addEventListener('click', toMarkdown);
+    $('loadSample').addEventListener('click', fillSample);
+
+    restore();
   </script>
 </body>
 </html>
