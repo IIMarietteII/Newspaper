@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FY26 전략 성과 — 신문 스타일 생성기</title>
+  <style>
+    :root {
+      --paper: #fdfcf8;
+      --ink: #1c1c1c;
+      --muted: #666;
+      --rule: #000;
+      --accent: #b91c1c; /* deep red */
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Noto Serif KR", Georgia, "Times New Roman", serif;
+      line-height: 1.6;
+    }
+    .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+
+    /* View toggles */
+    #editorView { display: block; }
+    #newsView { display: none; }
+
+    /* Form (first screen) */
+    .card {
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+      margin-bottom: 18px;
+    }
+    .card h2 { margin: 0 0 12px; font-size: 20px; }
+    .row { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 768px) {
+      .row.two { grid-template-columns: 1fr 1fr; }
+      .row.three { grid-template-columns: 1fr 1fr 1fr; }
+    }
+
+    label { font-size: 14px; color: var(--muted); display: block; margin-bottom: 6px; }
+    input[type="text"], textarea {
+      width: 100%;
+      border: 1px solid #d7d7d7;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font: inherit;
+      background: #fcfcfc;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+
+    .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+    .btn {
+      appearance: none; border: 1px solid #111; background: #111; color: #fff;
+      padding: 10px 16px; border-radius: 999px; font-weight: 600; cursor: pointer;
+    }
+    .btn.secondary { background: transparent; color: #111; }
+
+    /* Newspaper View */
+    .masthead { text-align: center; padding-bottom: 10px; border-bottom: 3px solid var(--rule); margin-bottom: 18px; }
+    .masthead .brand { letter-spacing: 2px; font-weight: 800; font-size: 14px; color: var(--accent); text-transform: uppercase; }
+    .masthead h1 { font-size: 44px; line-height: 1.1; margin: 12px 0 6px; }
+    .masthead h2 { font-weight: 400; font-size: 18px; margin: 0; color: #333; }
+
+    .dateline { text-align: center; font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+
+    .grid {
+      display: grid; gap: 18px; grid-template-columns: 1fr; align-items: start;
+    }
+    @media (min-width: 960px) {
+      .grid.columns { grid-template-columns: 2fr 1fr; }
+    }
+
+    .article { padding-bottom: 12px; border-bottom: 1px solid #ddd; }
+    .article h3 { font-size: 20px; margin: 0 0 6px; border-bottom: 1px solid #aaa; padding-bottom: 6px; }
+    blockquote { margin: 6px 0 12px; padding-left: 14px; border-left: 3px solid #999; font-style: italic; color: #333; }
+
+    .box { background: #f7f6f2; border: 1px solid #ddd; padding: 14px; }
+    .box h4 { margin: 0 0 8px; }
+    .list-tight { margin: 0; padding-left: 18px; }
+
+    .checklist { background: #fff; border: 1px dashed #bbb; padding: 14px; }
+
+    .toolbar { display: flex; justify-content: space-between; gap: 10px; margin: 14px 0 22px; }
+
+    /* Print */
+    @media print {
+      #editorView, .toolbar { display: none !important; }
+      #newsView { display: block !important; }
+      body { background: white; }
+      .container { max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Editor / First Screen -->
+    <section id="editorView">
+      <h1 style="margin: 6px 0 16px;">신문 스타일 생성기</h1>
+
+      <div class="card">
+        <h2>1. 헤드라인 & 부제</h2>
+        <div class="row">
+          <div>
+            <label>헤드라인 (Headline)</label>
+            <input id="headline" type="text" placeholder="FY26 연말, 언론이 보도할 단 한 줄 제목은?" />
+          </div>
+        </div>
+        <div class="row two">
+          <div>
+            <label>부제/키 메시지 1</label>
+            <input id="sub1" type="text" placeholder="성과 배경, 전략 핵심 포인트를 1~2줄로 요약한다면?" />
+          </div>
+          <div>
+            <label>부제/키 메시지 2</label>
+            <input id="sub2" type="text" placeholder="두 번째 키 메시지(선택)" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>2. 기사 영역</h2>
+        <div class="row">
+          <div>
+            <label>① 성과 기사 — “우리 전략이 만들어낸 가장 큰 성과는 무엇인가?”</label>
+            <textarea id="art1" placeholder="구체적 성과와 실행 요약"></textarea>
+          </div>
+          <div>
+            <label>② 인터뷰 기사 — “고객/파트너/시청자가 칭찬한다면?” (인용문 위주)</label>
+            <textarea id="art2" placeholder="예: “A+E와의 협업으로 캠페인 전환율이 2배 향상되었습니다.”"></textarea>
+          </div>
+          <div>
+            <label>③ 영향 기사 — “업계/사회에 어떤 변화를 만들었나?”</label>
+            <textarea id="art3" placeholder="정책/규모/생태계/인식 변화 등"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>3. 숫자로 보는 성과 & 마일스톤</h2>
+        <div class="row three">
+          <div>
+            <label>지표/마일스톤 #1</label>
+            <input id="m1" type="text" placeholder="예: 신규 파트너 48곳 확보" />
+          </div>
+          <div>
+            <label>지표/마일스톤 #2</label>
+            <input id="m2" type="text" placeholder="예: 성공률 37% → 62%" />
+          </div>
+          <div>
+            <label>지표/마일스톤 #3</label>
+            <input id="m3" type="text" placeholder="예: 파생 창작물 120편" />
+          </div>
+        </div>
+        <div class="hint">필요하면 생성 후에 더 추가/수정 가능합니다.</div>
+      </div>
+
+      <div class="card">
+        <h2>4. 전략 차별화 포인트</h2>
+        <textarea id="diff" placeholder="각 항목을 줄바꿈으로 구분해 입력하세요.
+- 우리가 성공할 수 있었던 비결은 무엇인가?
+- 경쟁사 대비 돋보이게 만든 차이는?
+- 새롭게 시도한 방식과 기존 관행과의 차이?
+- 운영/협업 최적화 사례?
+- 고객/시청자/파트너에 만든 실질적 변화?
+- 업계/사회에 준 파급 효과?
+- 장기 성장으로 연결된 이유?" style="min-height:140px"></textarea>
+      </div>
+
+      <div class="actions">
+        <button class="btn secondary" id="loadSample">샘플 채우기</button>
+        <button class="btn" id="generateBtn">Generate ▶</button>
+      </div>
+    </section>
+
+    <!-- Newspaper / Second Screen -->
+    <section id="newsView">
+      <div class="toolbar">
+        <button class="btn secondary" id="backBtn">◀ 편집하기</button>
+        <div style="display:flex;gap:10px;">
+          <button class="btn secondary" onclick="window.print()">🖨️ 인쇄/저장</button>
+          <button class="btn" id="copyMarkdown">📝 텍스트 복사</button>
+        </div>
+      </div>
+
+      <header class="masthead">
+        <div class="brand">A&E GLOBAL — SPECIAL EDITION</div>
+        <h1 id="outHeadline">헤드라인</h1>
+        <h2 id="outSub">부제/키 메시지</h2>
+      </header>
+
+      <div class="dateline" id="dateline"></div>
+
+      <div class="grid columns">
+        <main>
+          <article class="article">
+            <h3>성과 기사</h3>
+            <blockquote>“우리 전략이 만들어낸 가장 큰 성과는 무엇인가?”</blockquote>
+            <div id="outArt1"></div>
+          </article>
+
+          <article class="article">
+            <h3>인터뷰 기사</h3>
+            <blockquote>“고객/파트너/시청자가 우리를 칭찬한다면 어떤 말을 할까?”</blockquote>
+            <div id="outArt2"></div>
+          </article>
+
+          <article class="article" style="border-bottom:none;">
+            <h3>영향 기사</h3>
+            <blockquote>“우리 전략은 업계/사회에 어떤 변화를 만들었나?”</blockquote>
+            <div id="outArt3"></div>
+          </article>
+        </main>
+
+        <aside style="display:grid; gap:18px;">
+          <div class="box">
+            <h4>숫자로 보는 성과 & 마일스톤</h4>
+            <ul class="list-tight" id="outMetrics"></ul>
+          </div>
+
+          <div class="box">
+            <h4>전략 차별화 포인트</h4>
+            <ul class="list-tight" id="outDiff"></ul>
+          </div>
+
+          <div class="checklist">
+            <h4>✅ 체크리스트</h4>
+            <ul class="list-tight">
+              <li>헤드라인 (성과 비전 한 줄)</li>
+              <li>전략 축 (2~3개 핵심 전략)</li>
+              <li>성과 지표 & 마일스톤 (수치·과정지표)</li>
+              <li>이해관계자 인용문 (고객/파트너/시청자/직원)</li>
+              <li>차별화 요소 (우리가 특별한 이유)</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function nl2p(text) {
+      if (!text) return "";
+      // split paragraphs by double newline, fallback to single
+      const paras = text.trim().split(/\n\s*\n/);
+      return paras.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+    }
+
+    function linesToList(text) {
+      return (text || "")
+        .split(/\n/) 
+        .map(s => s.trim())
+        .filter(Boolean)
+        .map(s => `<li>${s}</li>`) 
+        .join('');
+    }
+
+    function generate() {
+      const headline = $('headline').value.trim();
+      const sub1 = $('sub1').value.trim();
+      const sub2 = $('sub2').value.trim();
+
+      const art1 = $('art1').value;
+      const art2 = $('art2').value;
+      const art3 = $('art3').value;
+
+      const m1 = $('m1').value.trim();
+      const m2 = $('m2').value.trim();
+      const m3 = $('m3').value.trim();
+
+      const diff = $('diff').value;
+
+      // Simple validation
+      if (!headline) { alert('헤드라인을 입력하세요.'); return; }
+
+      // Fill out view
+      $('outHeadline').textContent = headline;
+      const subParts = [sub1, sub2].filter(Boolean);
+      $('outSub').textContent = subParts.length ? subParts.join(' · ') : '';
+
+      $('outArt1').innerHTML = nl2p(art1);
+      $('outArt2').innerHTML = nl2p(art2);
+      $('outArt3').innerHTML = nl2p(art3);
+
+      const metrics = [m1, m2, m3].filter(Boolean).map(x => `<li>${x}</li>`).join('');
+      $('outMetrics').innerHTML = metrics || '<li>—</li>';
+
+      $('outDiff').innerHTML = linesToList(diff) || '<li>—</li>';
+
+      const now = new Date();
+      $('dateline').textContent = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} · Special Report`;
+
+      // Persist minimal state
+      const state = { headline, sub1, sub2, art1, art2, art3, m1, m2, m3, diff };
+      localStorage.setItem('newsgen.state', JSON.stringify(state));
+
+      // Swap views
+      $('editorView').style.display = 'none';
+      $('newsView').style.display = 'block';
+      window.scrollTo(0, 0);
+    }
+
+    function restore() {
+      try {
+        const raw = localStorage.getItem('newsgen.state');
+        if (!raw) return;
+        const s = JSON.parse(raw);
+        Object.entries(s).forEach(([k,v]) => { if ($(k)) $(k).value = v; });
+      } catch (e) {}
+    }
+
+    function toMarkdown() {
+      const headline = $('outHeadline').textContent;
+      const sub = $('outSub').textContent;
+
+      const art1 = $('outArt1').innerText.trim();
+      const art2 = $('outArt2').innerText.trim();
+      const art3 = $('outArt3').innerText.trim();
+
+      const metrics = Array.from($('outMetrics').querySelectorAll('li')).map(li => `- ${li.innerText}`).join('\n');
+      const diff = Array.from($('outDiff').querySelectorAll('li')).map(li => `- ${li.innerText}`).join('\n');
+
+      const md = `# ${headline}\n\n**${sub}**\n\n---\n\n## 성과 기사\n> 우리 전략이 만들어낸 가장 큰 성과는 무엇인가?\n\n${art1}\n\n## 인터뷰 기사\n> 고객/파트너/시청자가 우리를 칭찬한다면 어떤 말을 할까?\n\n${art2}\n\n## 영향 기사\n> 우리 전략은 업계/사회에 어떤 변화를 만들었나?\n\n${art3}\n\n## 숫자로 보는 성과 & 마일스톤\n${metrics}\n\n## 전략 차별화 포인트\n${diff}\n`;
+
+      navigator.clipboard.writeText(md).then(() => {
+        alert('생성된 내용을 텍스트(마크다운)로 복사했습니다.');
+      }).catch(() => {
+        // Fallback: show in prompt
+        prompt('복사 실패. 아래 내용을 수동으로 복사하세요:', md);
+      });
+    }
+
+    function fillSample() {
+      $('headline').value = 'FY26, 시청자 몰입 혁신으로 글로벌 성장 견인';
+      $('sub1').value = '데이터 기반 편성 + 크로스플랫폼 유통 전략으로 수익성 강화';
+      $('sub2').value = '파트너 생태계 확장과 제작 공정 혁신으로 효율 극대화';
+      $('art1').value = '오리지널 다큐 시리즈가 글로벌 상을 수상하고, FAST 채널 월간 시청시간이 78% 증가했습니다.\n동시에 제작-유통 파이프라인 자동화로 납기 준수율이 96%를 기록했습니다.';
+      $('art2').value = '“A+E의 신속한 협업 덕분에 캠페인 전환율이 2배 향상됐습니다.” — 파트너사 마케팅 총괄\n“신규 채널 덕분에 우리 지역에서도 동시 공개를 경험했어요.” — 해외 시청자 A';
+      $('art3').value = '콘텐츠 지역화 리드타임 단축으로 중소 제작사의 글로벌 진출 장벽이 낮아졌고,\nFAST/AVOD 생태계에서 장르 다양성이 확대되었습니다.';
+      $('m1').value = '신규 파트너 48곳 확보';
+      $('m2').value = 'FAST 채널 월간 시청시간 78% ↑';
+      $('m3').value = '제작 공정 자동화로 납기 준수율 96%';
+      $('diff').value = '데이터 기반 편성 최적화\n크로스플랫폼 동시 배포\n오퍼레이션 자동화로 리드타임 단축\n파트너 공동제작 모델 확장\n지역화(자막/더빙) 파이프라인 고도화';
+    }
+
+    // Wire events
+    $('generateBtn').addEventListener('click', generate);
+    $('backBtn').addEventListener('click', () => {
+      $('newsView').style.display = 'none';
+      $('editorView').style.display = 'block';
+      window.scrollTo(0, 0);
+    });
+    $('copyMarkdown').addEventListener('click', toMarkdown);
+    $('loadSample').addEventListener('click', fillSample);
+
+    restore();
+  </script>
+</body>
+</html>
