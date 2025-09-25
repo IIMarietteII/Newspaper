@@ -96,9 +96,19 @@
       body { background: white; }
       .container { max-width: none; }
     }
+      /* NEW: textured newspaper background (can be replaced) */
+    .use-texture-bg {
+      /* default image path (put your image at assets/bg.jpg in your repo) */
+      --bg-url: url('assets/bg.jpg');
+      background:
+        linear-gradient(rgba(255,255,255,0.90), rgba(255,255,255,0.90)),
+        var(--bg-url) center/cover fixed no-repeat;
+    }
+    /* keep print clean */
+    @media print { body { background: #ffffff !important; } }
   </style>
 </head>
-<body>
+<body class="use-texture-bg">
   <div class="container">
     <!-- Editor / First Screen -->
     <section id="editorView">
@@ -173,9 +183,23 @@
 - 장기 성장으로 연결된 이유?" style="min-height:140px"></textarea>
       </div>
 
-      <div class="actions">
-        <button class="btn secondary" id="loadSample">샘플 채우기</button>
-        <button class="btn" id="generateBtn">Generate ▶</button>
+            <div class="card">
+        <h2>디자인 옵션</h2>
+        <div class="row two">
+          <div>
+            <label>배경 이미지 URL (상대경로 가능)</label>
+            <input id="bgUrl" type="text" placeholder="assets/bg.jpg" />
+            <div class="hint">레포에 이미지를 업로드하고 상대경로로 지정하세요. (예: <code>assets/bg.jpg</code>)</div>
+          </div>
+          <div>
+            <label>배경 투명도 (0.70 ~ 0.98 권장)</label>
+            <input id="bgAlpha" type="text" placeholder="0.90" />
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn secondary" id="loadSample">샘플 채우기</button>
+          <button class="btn" id="generateBtn">Generate ▶</button>
+        </div>
       </div>
     </section>
 
@@ -278,8 +302,42 @@
 
       const diff = $('diff').value;
 
+      const bgUrl = $('bgUrl').value.trim() || 'assets/bg.jpg';
+      const bgAlpha = parseFloat(($('bgAlpha').value || '0.90').trim());
+      const alpha = isNaN(bgAlpha) ? 0.90 : Math.max(0, Math.min(1, bgAlpha));
+
       // Simple validation
       if (!headline) { alert('헤드라인을 입력하세요.'); return; }
+
+      // Apply background dynamically
+      document.body.style.background = `linear-gradient(rgba(255,255,255,${alpha}), rgba(255,255,255,${alpha})), url('${bgUrl}') center/cover fixed no-repeat`;
+
+      // Fill out view
+      $('outHeadline').textContent = headline;
+      const subParts = [sub1, sub2].filter(Boolean);
+      $('outSub').textContent = subParts.length ? subParts.join(' · ') : '';
+
+      $('outArt1').innerHTML = nl2p(art1);
+      $('outArt2').innerHTML = nl2p(art2);
+      $('outArt3').innerHTML = nl2p(art3);
+
+      const metrics = [m1, m2, m3].filter(Boolean).map(x => `<li>${x}</li>`).join('');
+      $('outMetrics').innerHTML = metrics || '<li>—</li>';
+
+      $('outDiff').innerHTML = linesToList(diff) || '<li>—</li>';
+
+      const now = new Date();
+      $('dateline').textContent = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} · Special Report`;
+
+      // Persist minimal state
+      const state = { headline, sub1, sub2, art1, art2, art3, m1, m2, m3, diff, bgUrl, bgAlpha: alpha };
+      localStorage.setItem('newsgen.state', JSON.stringify(state));
+
+      // Swap views
+      $('editorView').style.display = 'none';
+      $('newsView').style.display = 'block';
+      window.scrollTo(0, 0);
+    }
 
       // Fill out view
       $('outHeadline').textContent = headline;
@@ -314,6 +372,12 @@
         if (!raw) return;
         const s = JSON.parse(raw);
         Object.entries(s).forEach(([k,v]) => { if ($(k)) $(k).value = v; });
+        if (s.bgUrl || s.bgAlpha) {
+          const alpha = s.bgAlpha ?? 0.90;
+          document.body.style.background = `linear-gradient(rgba(255,255,255,${alpha}), rgba(255,255,255,${alpha})), url('${s.bgUrl || 'assets/bg.jpg'}') center/cover fixed no-repeat`;
+        }
+      } catch (e) {}
+    });
       } catch (e) {}
     }
 
